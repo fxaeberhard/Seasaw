@@ -18,12 +18,13 @@ public class Balance: MonoBehaviour
 	private bool isPaused = false;
 	private int countdown = 0;
 	float speed = 0.5f;
-	public float INITIALSPEED = 0.5f;
+	public float INITIALSPEED = 0.1f;
 	private float position = 0;
 	string msgLeft = "";
 	string msgRight = "";
 	Animator animator;
 	private GameObject tweenObject;
+	bool goingUp = true;
 
 	/**
 	 */
@@ -50,12 +51,13 @@ public class Balance: MonoBehaviour
 	{
 		tweenObject = new GameObject();
 		print ("Start() " + countdown);
-		transform.eulerAngles = new Vector3 (0, 0, 5);
+		//transform.eulerAngles = new Vector3 (0, 0, 5);
 		if (SystemInfo.supportsGyroscope) {
 			Input.gyro.enabled = true;
 		}
 
 		animator = this.gameObject.GetComponent<Animator> ();
+		animator.speed = 0;
 	//	animator.StopPlayback ();
 	//	animator.StartPlayback ();
 		//animator
@@ -91,42 +93,52 @@ public class Balance: MonoBehaviour
 	}
 	
 	void SetState(State state) {
+		print ("SetState(" + state + ")");
 		switch (state){
 		case State.Countdown:
+			animator.PlayInFixedTime("Up", -1, 0);
+//			animator.GetCurrentAnimatorStateInfo(0).normalizedTime = 0;
+			animator.speed = 0;
 			StartCoroutine (getReady ());
+			break;
+		case State.Over:
+			speed = 0;
+			animator.speed = 0;
+			break;
+		case State.Running:
+			animator.speed = 1;
+			animator.SetFloat("speedMult", INITIALSPEED);
+			break;
+		case State.Waiting:
 			break;
 		}
 		currentState = state;
 	}
 
-	bool reversed = false;
 	// Update is called once per frame
 	void Update ()
 	{
-		
-		print ("Update(): " + Input.touchCount+"*"+animator.GetCurrentAnimatorStateInfo(0).normalizedTime);
 
-		var pos = animator.GetCurrentAnimatorStateInfo (0).normalizedTime;
-		if (pos > 0.8) {
-			print("reverse");
-		//	if (!reversed) {
-				reversed = true;
-				animator.SetTrigger("isReverse");
-		//	}
-			//animator.SetTrigger ("reverse");
-		}
+		AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo (0);
 
-		if (Input.touchCount > 0 ) {
-			//print (Input.GetTouch (0).position+"*"+Input.GetTouch (0).phase );
-		}
+		//print ("Update(): " + Input.touchCount+"*"+state.normalizedTime+"*"+state.fullPathHash);
+		//if (state.normalizedTime > 0.6) {
+			//animator.SetTrigger("isReverse");
+		//}
+
 		switch (currentState) {
 		case State.Waiting:
-			if (Input.touchCount > 1) 			{// && Input.GetTouch(0).phase == TouchPhase.Began
+			if (Input.touchCount > 0) 			{// && Input.GetTouch(0).phase == TouchPhase.Began
+				
+				SetState(State.Countdown);
+				return;
+
 				float pos1 = Input.GetTouch(0).position.x;
 				float pos2 = Input.GetTouch(1).position.x;
 
 				if ((pos1 <Screen.width/3 && pos2 > Screen.width*2/3) 
 				    || (pos2 <Screen.width/3 && pos1 > Screen.width*2/3) ){
+					print ("touch");
 					SetState(State.Countdown);
 				}
 			}
@@ -136,54 +148,73 @@ public class Balance: MonoBehaviour
 		
 		if (currentState != State.Running || isPaused)
 			return;
-		position += speed * Time.deltaTime;
-		
+
+		position = state.normalizedTime;
+		//position += speed * Time.deltaTime;
+		//transform.eulerAngles = new Vector3 (0, 0, 40 * position);
 		/*if (position >= 1 || position <= -1) {
 			speed = -speed;
 		}*/
-		
-		transform.eulerAngles = new Vector3 (0, 0, 40 * position);
-		
+
 		string tmsg = "";
 		
-		float abspost = Mathf.Abs (position);
-		
-		if (abspost > 1) {
-			tmsg = "Too late";
-			currentState = State.Over;
-			speed = 0;
-		}
+		float abspost = Mathf.Abs (position );
+
+
+
+
 		
 		
 		IphoneAcc = Input.acceleration;
 		IphoneDeltaAcc = IphoneAcc - LowPassFilter (IphoneAcc);
-		
-		if (Mathf.Abs (IphoneDeltaAcc.x) >= .4) {
-			// Do something
-			print ("shake x " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*" + Mathf.Sign (position) + "*" + Mathf.Sign (speed) + ", speed:" + speed);
-			
-			if (Mathf.Sign (IphoneDeltaAcc.x) != Mathf.Sign (position)
-			    && Mathf.Approximately (Mathf.Sign (speed), Mathf.Sign (position))) { // ensure the guy is pushing in the right direction)
+
+		float cspeedmult = animator.GetFloat ("speedMult");
+
+		if (cspeedmult <0) {
+			abspost = 1-abspost;
+		}
+		if (abspost > 1) {
+			tmsg = "Too late";
+			SetState (State.Over);
+		}
+
+		if (Mathf.Abs (IphoneDeltaAcc.x) >= .2) {
+
+			print ("shake " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*"  + ", speed:" + abspost+"*"+cspeedmult);
+
+
+
+			if (Mathf.Sign (IphoneDeltaAcc.x) != Mathf.Sign(cspeedmult)
+			    /*&& Mathf.Approximately (Mathf.Sign (speed), posSign)*/) { // ensure the guy is pushing in the right direction)
 				print ("right sign" + abspost);
 				if (abspost > 0.3 && abspost < 0.6) { // Fumble
 					tmsg = "too early";
 					speed = Mathf.Sign (speed) * -1 * INITIALSPEED;
+					animator.SetFloat("speedMult", Mathf.Sign (cspeedmult) * -1 * INITIALSPEED);
+					//animator.SetTrigger("isReverse");
+					//goingUp = !goingUp;
 					print ("REVERSE early");
-				} else  if (abspost > 0.85 && abspost < 1.05) {// Perfect
+				} else  if (abspost > 0.85 && abspost < 0.95) {// Perfect
 					tmsg = "perfect";
 					print ("REVERSE perfect");
 					speed = -1.1f * speed;
+					animator.SetFloat("speedMult", -1.05f *cspeedmult);
+					//goingUp = !goingUp;
+					//animator.SetTrigger("isReverse");
 				} else if (abspost > 0.6) { // Good
 					tmsg = "good";
 					print ("REVERSE good");
 					speed = -1.05f * speed;
+					animator.SetFloat("speedMult", -1.02f *cspeedmult);
+					//goingUp = !goingUp;
+					//animator.SetTrigger("isReverse");
 				} else {
 					print ("but ignored");
 				}
 			}
 		}
 		if (tmsg != "") {
-			if (position < 0) {
+			if (cspeedmult < 0) {
 				msgLeft = tmsg;
 			} else {
 				msgRight = tmsg;
@@ -222,53 +253,7 @@ public class Balance: MonoBehaviour
 				zCord = Mathf.Lerp (0, currentAccX, Time.time);
 				transform.Translate (0, 0, zCord * Time.deltaTime);
 			}    
-		}
-		return;
-		
-		
-		
-		float angle = transform.eulerAngles.z;
-		if (angle > 180)
-			angle -= 360;
-		
-		float side = Mathf.Sign (angle);
-		print (angle);
-		
-		float character2Pivot = Mathf.Sqrt (Mathf.Pow (characterHeight, 2) + Mathf.Pow (seesawRadius, 2));
-		float character2PivotAngle = Mathf.Atan (characterHeight / seesawRadius) * 180 / Mathf.PI;
-		
-		//		print ("Update(): character2Pivot=" + character2Pivot + ", character2PivotAngle=" + character2PivotAngle +"*"+Mathf.Asin(characterHeight/character2Pivot));
-		
-		float angle1 = 90 - angle - character2PivotAngle;
-		float angle2 = 90 + angle - character2PivotAngle;
-		print (angle1 + " :" + angle2 + "*" + Mathf.Sin (angle1 * Mathf.PI / 180) + "*" + Mathf.Sin (angle2 * Mathf.PI / 180));
-		
-		float torque = character2Pivot * characterWeight *
-			(-Mathf.Sin (angle1 * Mathf.PI / 180) + Mathf.Sin (angle2 * Mathf.PI / 180));
-		
-		//		print ("Torque: " + torque);
-		angularSpeed += Time.deltaTime * torque;
-		float deltaAngle = Time.deltaTime * angularSpeed;
-		float newAngle = angle + deltaAngle;
-		
-		
-		if (Mathf.Abs (newAngle) > MAXANGLE) {
-			print ("MAXREACHED");
-			newAngle = side * MAXANGLE;
-		}
-		//iTween.moveTo(tweenObject, 1, null, Random.Range(0, Screen.width-100), Random.Range(0, Screen.height-40), null);
-		
-		transform.eulerAngles = new Vector3 (0, 0, newAngle);
-		slider.value = newAngle;
-		
-		//			 if (Input.GetKey("o")){
-		//				transform.Rotate(Vector3.right, Time.deltaTime*10);
-		//			}
-		//			
-		//			if (Input.GetKey("p")){
-		//				transform.Rotate(-Vector3.right, Time.deltaTime*10);
-		//			}
-		
+		}		
 	}
 	// GUI
 	void OnGUI ()
@@ -327,7 +312,7 @@ public class Balance: MonoBehaviour
 			
 			if (currentState == State.Over) {
 				if (GUI.Button (new Rect (Screen.width / 2 - 30, Screen.height / 2 - 15, 60, 30), "Restart")) {
-					Application.LoadLevel ("Untitled");
+										SetState (State.Countdown);
 				}
 			} 
 			// display countdown    
@@ -355,7 +340,7 @@ public class Balance: MonoBehaviour
 				resume ();
 			}
 			if (GUI.Button (new Rect (10, 70, 100, 30), "Restart")) {
-				Application.LoadLevel ("Game");
+				Application.LoadLevel ("SEESAW");
 			}
 			if (GUI.Button (new Rect (10, 110, 100, 30), "Quit")) {
 				Application.Quit ();
@@ -364,7 +349,6 @@ public class Balance: MonoBehaviour
 			GUI.EndGroup ();
 		}
 	}
-	
 	IEnumerator getReady ()
 	{ 			
 		countdown = COUNTDOWNDURATION;
@@ -372,10 +356,9 @@ public class Balance: MonoBehaviour
 		while (countdown >1) {
 			yield return new WaitForSeconds (1);  
 			countdown--;
-			
-			
+			//print ("getReady():"+countdown);
 		}
-		currentState = State.Running;
+		SetState (State.Running);
 	}
 	
 	public void pause ()
