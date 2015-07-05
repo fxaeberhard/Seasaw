@@ -278,19 +278,21 @@ public class Balance: MonoBehaviour
 		float xPos = tweenObject.transform.localPosition.x;
 		float yPos = tweenObject.transform.localPosition.y;
 		
-		if (GUI.Button (new Rect (xPos, yPos, 100, 40), new GUIContent ("click me"))) {
+		//if (GUI.Button (new Rect (xPos, yPos, 100, 40), new GUIContent ("click me"))) {
 			//	iTween.MoveTo(tweenObject, 1, null, Random.Range(0, Screen.width-100), Random.Range(0, Screen.height-40), null);
-		}
+		//}
 		//print ("OnGUI():" + currentState+", "+countdown);
-		
+		var 		largeFont = new GUIStyle();
+
+		largeFont.fontSize = 32;
 		switch (currentState) {
 		case State.Waiting:
 			// Make a group on the centre of the screen    
 			GUI.BeginGroup (new Rect (Screen.width / 2 - 100, 50, 200, 175));
 			
 			// Make a box to show the group on the screen        
-			GUI.color = Color.red;    
-			GUI.Box (new Rect (0, 0, 200, 175), "Waitring for players");
+			GUI.color = Color.white;    
+			GUI.Label (new Rect (0, 0, 200, 175), "Touch to start", largeFont);
 			
 			GUI.EndGroup ();
 			return;
@@ -303,8 +305,8 @@ public class Balance: MonoBehaviour
 			GUI.BeginGroup (new Rect (Screen.width / 2 - 100, 50, 200, 175));
 			
 			// Make a box to show the group on the screen        
-			GUI.color = Color.red;    
-			GUI.Box (new Rect (0, 0, 200, 175), "" + countdown);
+			GUI.color = Color.white;    
+				GUI.Label (new Rect (0, 0, 200, 175), "" + countdown, largeFont);
 			
 			// display countdown    
 			//			GUI.color = Color.white;    
