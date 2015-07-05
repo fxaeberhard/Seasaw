@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+
 //7855
 public class Balance: MonoBehaviour
 {
@@ -49,7 +50,7 @@ public class Balance: MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
-		tweenObject = new GameObject();
+		tweenObject = new GameObject ();
 		print ("Start() " + countdown);
 		//transform.eulerAngles = new Vector3 (0, 0, 5);
 		if (SystemInfo.supportsGyroscope) {
@@ -58,12 +59,12 @@ public class Balance: MonoBehaviour
 
 		animator = this.gameObject.GetComponent<Animator> ();
 		animator.speed = 0;
-	//	animator.StopPlayback ();
-	//	animator.StartPlayback ();
+		//	animator.StopPlayback ();
+		//	animator.StartPlayback ();
 		//animator
 //			animator.playbackTime = 30;
 		//animator.StartPlayback ();
-	//	animator.speed = -1;
+		//	animator.speed = -1;
 
 
 		canMoveForward = true;
@@ -92,22 +93,25 @@ public class Balance: MonoBehaviour
 		return lowPassValue;
 	}
 	
-	void SetState(State state) {
+	void SetState (State state)
+	{
 		print ("SetState(" + state + ")");
-		switch (state){
+		switch (state) {
 		case State.Countdown:
-			animator.PlayInFixedTime("Up", -1, 0);
+			animator.PlayInFixedTime ("Up", -1, 0);
 //			animator.GetCurrentAnimatorStateInfo(0).normalizedTime = 0;
 			animator.speed = 0;
 			StartCoroutine (getReady ());
 			break;
 		case State.Over:
 			speed = 0;
-			animator.speed = 0;
+			//animator.speed = 0;
 			break;
 		case State.Running:
+			msgLeft = "";
+			msgRight = "";
 			animator.speed = 1;
-			animator.SetFloat("speedMult", INITIALSPEED);
+			animator.SetFloat ("speedMult", INITIALSPEED);
 			break;
 		case State.Waiting:
 			break;
@@ -123,23 +127,23 @@ public class Balance: MonoBehaviour
 
 		//print ("Update(): " + Input.touchCount+"*"+state.normalizedTime+"*"+state.fullPathHash);
 		//if (state.normalizedTime > 0.6) {
-			//animator.SetTrigger("isReverse");
+		//animator.SetTrigger("isReverse");
 		//}
 
 		switch (currentState) {
 		case State.Waiting:
-			if (Input.touchCount > 0) 			{// && Input.GetTouch(0).phase == TouchPhase.Began
+			if (Input.touchCount > 0) {// && Input.GetTouch(0).phase == TouchPhase.Began
 				
-				SetState(State.Countdown);
+				SetState (State.Countdown);
 				return;
 
-				float pos1 = Input.GetTouch(0).position.x;
-				float pos2 = Input.GetTouch(1).position.x;
+				float pos1 = Input.GetTouch (0).position.x;
+				float pos2 = Input.GetTouch (1).position.x;
 
-				if ((pos1 <Screen.width/3 && pos2 > Screen.width*2/3) 
-				    || (pos2 <Screen.width/3 && pos1 > Screen.width*2/3) ){
+				if ((pos1 < Screen.width / 3 && pos2 > Screen.width * 2 / 3) 
+					|| (pos2 < Screen.width / 3 && pos1 > Screen.width * 2 / 3)) {
 					print ("touch");
-					SetState(State.Countdown);
+					SetState (State.Countdown);
 				}
 			}
 			return;
@@ -158,51 +162,67 @@ public class Balance: MonoBehaviour
 
 		string tmsg = "";
 		
-		float abspost = Mathf.Abs (position );
+		float abspost = Mathf.Abs (position);
 
 		IphoneAcc = Input.acceleration;
 		IphoneDeltaAcc = IphoneAcc - LowPassFilter (IphoneAcc);
 
 		float cspeedmult = animator.GetFloat ("speedMult");
 
-		if (cspeedmult <0) {
-			abspost = 1-position;
+		if (cspeedmult < 0) {
+			abspost = 1 - position;
 		}
 		
 		//print (abspost +"*" + cspeedmult+"*"+ position);
 		
-		print ("shake " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*"  + ", speed:" + abspost+"*"+cspeedmult+"*"+ position);
+		print ("shake " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*" + ", speed:" + abspost + "*" + cspeedmult + "*" + position);
 
 
-		if (abspost > 1.05) {
+		if (abspost > 1.15) {
 			tmsg = "Missed";
 			SetState (State.Over);
-		}else 		if (Mathf.Abs (IphoneDeltaAcc.x) >= .01) {
+			if (cspeedmult > 0) {
+				animator.SetTrigger ("lostLeft");
+			} else {
+				animator.SetFloat ("speedMult", Mathf.Abs (cspeedmult));
+				animator.SetTrigger ("lostRight");
+			}
+
+		} else 		if (Mathf.Abs (IphoneDeltaAcc.x) >= .05) {
 
 			//print ("shake " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*"  + ", speed:" + abspost+"*"+cspeedmult);
 
 
 
-			if (Mathf.Sign (IphoneDeltaAcc.x) != -Mathf.Sign(cspeedmult)
+			if (Mathf.Sign (IphoneDeltaAcc.x) != -Mathf.Sign (cspeedmult)
 			    /*&& Mathf.Approximately (Mathf.Sign (speed), posSign)*/) { // ensure the guy is pushing in the right direction)
 				print ("right sign" + abspost);
-				if (abspost > 0.7 && abspost < 0.75) { // Fumble
+				if (abspost > 0.6 && abspost < 0.75) { // Fumble
 					tmsg = "too early";
 					speed = Mathf.Sign (speed) * -1 * INITIALSPEED;
-					animator.SetFloat("speedMult", Mathf.Sign (cspeedmult) * -1 * INITIALSPEED);
+					animator.SetFloat ("speedMult", Mathf.Sign (cspeedmult) * -1 * INITIALSPEED);
 					//animator.SetTrigger("isReverse");
 					//goingUp = !goingUp;
 					print ("REVERSE early");
+					
+					AudioSource audio = GetComponent<AudioSource>();
+					audio.Play();
 				} else  if (abspost > 0.85 && abspost < 0.95) {// Perfect
 					tmsg = "perfect";
 					print ("REVERSE perfect");
 					speed = -1.1f * speed;
-					animator.SetFloat("speedMult", -1.04f *cspeedmult);
+					animator.SetFloat ("speedMult", -1.04f * cspeedmult);
+
+					AudioSource audio = GetComponent<AudioSource>();
+					audio.Play();
 				} else if (abspost > 0.75) { // Good
 					tmsg = "good";
 					print ("REVERSE good");
 					speed = -1.05f * speed;
-					animator.SetFloat("speedMult", -1.01f *cspeedmult);
+					animator.SetFloat ("speedMult", -1.01f * cspeedmult);
+					//if (cspeedmult>0){
+					//AudioSource audio = GetComponent<AudioSource>();
+					//audio.Play();
 				} else {
 					print ("but ignored");
 				}
@@ -258,8 +278,7 @@ public class Balance: MonoBehaviour
 		float xPos = tweenObject.transform.localPosition.x;
 		float yPos = tweenObject.transform.localPosition.y;
 		
-		if (GUI.Button(new Rect(xPos, yPos, 100, 40), new GUIContent("click me")))
-		{
+		if (GUI.Button (new Rect (xPos, yPos, 100, 40), new GUIContent ("click me"))) {
 			//	iTween.MoveTo(tweenObject, 1, null, Random.Range(0, Screen.width-100), Random.Range(0, Screen.height-40), null);
 		}
 		//print ("OnGUI():" + currentState+", "+countdown);
@@ -308,7 +327,7 @@ public class Balance: MonoBehaviour
 			
 			if (currentState == State.Over) {
 				if (GUI.Button (new Rect (Screen.width / 2 - 30, Screen.height / 2 - 15, 60, 30), "Restart")) {
-										SetState (State.Countdown);
+					SetState (State.Countdown);
 				}
 			} 
 			// display countdown    
@@ -345,6 +364,7 @@ public class Balance: MonoBehaviour
 			GUI.EndGroup ();
 		}
 	}
+
 	IEnumerator getReady ()
 	{ 			
 		countdown = COUNTDOWNDURATION;
