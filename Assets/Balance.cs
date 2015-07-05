@@ -22,7 +22,9 @@ public class Balance: MonoBehaviour
 	private float position = 0;
 	string msgLeft = "";
 	string msgRight = "";
+	Animator animator;
 	private GameObject tweenObject;
+
 	/**
 	 */
 	public int MAXANGLE = 27;
@@ -52,12 +54,16 @@ public class Balance: MonoBehaviour
 		if (SystemInfo.supportsGyroscope) {
 			Input.gyro.enabled = true;
 		}
-	Animator animator = this.gameObject.GetComponent<Animator> ();
-		animator.StopPlayback ();
-		animator.StartPlayback ();
-			animator.playbackTime = 3000;
-		animator.StartPlayback ();
-		animator.speed = 0;
+
+		animator = this.gameObject.GetComponent<Animator> ();
+	//	animator.StopPlayback ();
+	//	animator.StartPlayback ();
+		//animator
+//			animator.playbackTime = 30;
+		//animator.StartPlayback ();
+	//	animator.speed = -1;
+
+
 		canMoveForward = true;
 		canMoveBackward = true;   		
 		lowPassFilterFactor = accelerometerUpdateInterval / lowPassKernelWidthInSeconds;
@@ -75,8 +81,8 @@ public class Balance: MonoBehaviour
 	
 	//	Vector3  lowPassValue = Vector3.zero; // should be initialized with 1st sample
 	
-	Vector3   IphoneAcc ;
-	Vector3  IphoneDeltaAcc  ;
+	Vector3 IphoneAcc ;
+	Vector3 IphoneDeltaAcc  ;
 	
 	Vector3 LowPassFilter (Vector3 newSample)
 	{
@@ -92,26 +98,35 @@ public class Balance: MonoBehaviour
 		}
 		currentState = state;
 	}
+
+	bool reversed = false;
 	// Update is called once per frame
 	void Update ()
 	{
 		
-		//print ("Update(): " + Input.touchCount);
+		print ("Update(): " + Input.touchCount+"*"+animator.GetCurrentAnimatorStateInfo(0).normalizedTime);
+
+		var pos = animator.GetCurrentAnimatorStateInfo (0).normalizedTime;
+		if (pos > 0.8) {
+			print("reverse");
+		//	if (!reversed) {
+				reversed = true;
+				animator.SetTrigger("isReverse");
+		//	}
+			//animator.SetTrigger ("reverse");
+		}
+
 		if (Input.touchCount > 0 ) {
 			//print (Input.GetTouch (0).position+"*"+Input.GetTouch (0).phase );
 		}
 		switch (currentState) {
 		case State.Waiting:
 			if (Input.touchCount > 1) 			{// && Input.GetTouch(0).phase == TouchPhase.Began
-				print(Input.GetTouch(0).position);
-				Vector2 touchDeltaPosition = Input.GetTouch(0).deltaPosition;
-				
 				float pos1 = Input.GetTouch(0).position.x;
 				float pos2 = Input.GetTouch(1).position.x;
-				print (pos1+"*"+pos2+"*"+Screen.width);
+
 				if ((pos1 <Screen.width/3 && pos2 > Screen.width*2/3) 
 				    || (pos2 <Screen.width/3 && pos1 > Screen.width*2/3) ){
-					print("ok");
 					SetState(State.Countdown);
 				}
 			}
