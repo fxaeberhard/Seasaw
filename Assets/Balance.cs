@@ -160,34 +160,33 @@ public class Balance: MonoBehaviour
 		
 		float abspost = Mathf.Abs (position );
 
-
-
-
-		
-		
 		IphoneAcc = Input.acceleration;
 		IphoneDeltaAcc = IphoneAcc - LowPassFilter (IphoneAcc);
 
 		float cspeedmult = animator.GetFloat ("speedMult");
 
 		if (cspeedmult <0) {
-			abspost = 1-abspost;
+			abspost = 1-position;
 		}
-		if (abspost > 1) {
-			tmsg = "Too late";
+		
+		//print (abspost +"*" + cspeedmult+"*"+ position);
+		
+		print ("shake " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*"  + ", speed:" + abspost+"*"+cspeedmult+"*"+ position);
+
+
+		if (abspost > 1.05) {
+			tmsg = "Missed";
 			SetState (State.Over);
-		}
+		}else 		if (Mathf.Abs (IphoneDeltaAcc.x) >= .01) {
 
-		if (Mathf.Abs (IphoneDeltaAcc.x) >= .2) {
-
-			print ("shake " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*"  + ", speed:" + abspost+"*"+cspeedmult);
+			//print ("shake " + IphoneDeltaAcc.x + "*" + Mathf.Sign (IphoneDeltaAcc.x) + "*"  + ", speed:" + abspost+"*"+cspeedmult);
 
 
 
-			if (Mathf.Sign (IphoneDeltaAcc.x) != Mathf.Sign(cspeedmult)
+			if (Mathf.Sign (IphoneDeltaAcc.x) != -Mathf.Sign(cspeedmult)
 			    /*&& Mathf.Approximately (Mathf.Sign (speed), posSign)*/) { // ensure the guy is pushing in the right direction)
 				print ("right sign" + abspost);
-				if (abspost > 0.3 && abspost < 0.6) { // Fumble
+				if (abspost > 0.7 && abspost < 0.75) { // Fumble
 					tmsg = "too early";
 					speed = Mathf.Sign (speed) * -1 * INITIALSPEED;
 					animator.SetFloat("speedMult", Mathf.Sign (cspeedmult) * -1 * INITIALSPEED);
@@ -198,16 +197,12 @@ public class Balance: MonoBehaviour
 					tmsg = "perfect";
 					print ("REVERSE perfect");
 					speed = -1.1f * speed;
-					animator.SetFloat("speedMult", -1.05f *cspeedmult);
-					//goingUp = !goingUp;
-					//animator.SetTrigger("isReverse");
-				} else if (abspost > 0.6) { // Good
+					animator.SetFloat("speedMult", -1.04f *cspeedmult);
+				} else if (abspost > 0.75) { // Good
 					tmsg = "good";
 					print ("REVERSE good");
 					speed = -1.05f * speed;
-					animator.SetFloat("speedMult", -1.02f *cspeedmult);
-					//goingUp = !goingUp;
-					//animator.SetTrigger("isReverse");
+					animator.SetFloat("speedMult", -1.01f *cspeedmult);
 				} else {
 					print ("but ignored");
 				}
@@ -216,6 +211,7 @@ public class Balance: MonoBehaviour
 		if (tmsg != "") {
 			if (cspeedmult < 0) {
 				msgLeft = tmsg;
+				//msgRight = "";
 			} else {
 				msgRight = tmsg;
 			}
