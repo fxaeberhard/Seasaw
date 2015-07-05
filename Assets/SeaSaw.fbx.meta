@@ -712,6 +712,7 @@ ModelImporter:
     101408: Root_null_2
     101410: Spine_null_2
     101412: Torso_con__2
+    101414: feedback
     400000: Advanced_Biped_rig
     400002: Axe
     400004: BD_Chest_jnt
@@ -1419,20 +1420,24 @@ ModelImporter:
     401408: Root_null_2
     401410: Spine_null_2
     401412: Torso_con__2
+    401414: feedback
     2300000: Axe
     2300002: Ground
     2300004: Plank
     2300006: poignee
+    2300008: feedback
     3300000: Axe
     3300002: Ground
     3300004: Plank
     3300006: poignee
+    3300008: feedback
     4300000: Grug_mesh
     4300002: Ground
     4300004: Plank
     4300006: poignee
     4300008: Axe
     4300010: Grug_mesh2
+    4300012: feedback
     7400000: C4D Animation Take
     9500000: //RootNode
     13700000: Grug_mesh
